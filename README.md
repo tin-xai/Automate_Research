@@ -1,5 +1,9 @@
+
 # Automate_Research
 Try to automate everything for research
+
+# Slurm
+squeue -u <username>
 
 # Concat images and Draw using ImageMagick
 Used to concat images and draw a text on an image, an advantage of using ImageMagick is to avoid aliasing (clear image compared to Matplotlib): [link](https://github.com/tin-xai/Automate_Research/blob/main/concat.sh)
