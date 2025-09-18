@@ -7,3 +7,6 @@
 
 # create new env
 ``conda create -n myenv python=3.10``
+
+# init conda
+``/aiau001_scratch/tin/anaconda3/bin/conda init bash``
