@@ -10,3 +10,6 @@
 
 # init conda
 ``/aiau001_scratch/tin/anaconda3/bin/conda init bash``
+``source ~/.bashrc``
+
+then activate.
