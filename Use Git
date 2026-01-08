@@ -4,3 +4,21 @@ git reset --hard origin/v3 --> branch
 git clean -fd --> remove untracked files
 
 
+# How to merge
+# 1) Make sure your local branches are up to date
+git fetch origin
+
+# 2) Switch to master (the branch that will RECEIVE the changes)
+git checkout master
+
+# 3) Update master from remote
+git pull origin master
+
+# 4) Merge v3 INTO master
+git merge v3
+
+# 5) Push updated master to remote
+git push origin master
+
+
+Use :wq to save and quite
