@@ -22,3 +22,11 @@ git push origin master
 
 
 Use :wq to save and quite
+
+
+# create new branch
+git switch master
+git pull origin master
+git switch -c v4-hiding-post
+
+push this branch
