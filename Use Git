@@ -1,0 +1,6 @@
+# How to make the local be exactly similar to the remote
+git fetch origin
+git reset --hard origin/v3 --> branch
+git clean -fd --> remove untracked files
+
+
