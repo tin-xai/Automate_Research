@@ -30,3 +30,8 @@ git pull origin master
 git switch -c v4-hiding-post
 
 push this branch
+
+
+# I just push a new commit to v6, but now I also want to update v7 to be similar to v6
+git checkout v7
+git merge v6
