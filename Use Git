@@ -32,6 +32,21 @@ git switch -c v4-hiding-post
 push this branch
 
 
+# Make sure you're on v6
+git checkout v6
+
+# Create and switch to v7
+git checkout -b v7
+
+
+# When v7 is complete:
+git checkout v6
+git merge v7
+
+# Then merge v6 to master:
+git checkout master
+git merge v6
+
 # I just push a new commit to v6, but now I also want to update v7 to be similar to v6
 git checkout v7
 git merge v6
