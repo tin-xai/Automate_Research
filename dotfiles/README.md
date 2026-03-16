@@ -1,6 +1,6 @@
 # dotfiles
-used to config tmux, vim, yabai, etc
 
+used to config tmux, vim, yabai, etc
 
 tmux source ~/.tmux.conf
 
@@ -11,10 +11,3 @@ tmux source ~/.tmux.conf
 
 selecting text
 `prefix + [`, then use `v` to select texts, and use `y` to copy selected texts.
-
-# References
-[yabai] https://www.josean.com/posts/yabai-setup
-
-[alacritty] https://www.josean.com/posts/how-to-setup-alacritty-terminal
-
-https://jeongwhanchoi.medium.com/install-tmux-on-osx-and-basics-commands-for-beginners-be22520fd95e

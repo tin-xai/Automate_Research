@@ -2,28 +2,40 @@
 # Automate_Research
 Try to automate everything for research
 
-# Slurm
-squeue -u <username>
+# Interactive Tricks Browser
+If you store many command snippets in markdown, use the interactive helper:
 
-# Concat images and Draw using ImageMagick
-Used to concat images and draw a text on an image, an advantage of using ImageMagick is to avoid aliasing (clear image compared to Matplotlib): [link](https://github.com/tin-xai/Automate_Research/blob/main/concat.sh)
+```bash
+python3 interactive_tricks.py
+```
 
-# Quick ImageChecking
-Used to check the error of an image and save it to a corresponding folder: https://github.com/tin-xai/Quick_ImageChecking
+Useful commands:
+```bash
+# List every parsed snippet
+python3 interactive_tricks.py --list
 
-# Dotfiles
-Used to config the tmux, bashshell, etc: https://github.com/tin-xai/dotfiles
+# Search snippets without entering interactive mode
+python3 interactive_tricks.py --search "submodule"
 
-# ImageNetViewer
-Used to view a batch of images of a class of ImageNet (or others): https://github.com/tin-xai/ImageNet_Viewer
+# Launch a simple interactive website
+python3 interactive_tricks.py --web
 
-# Git
-[Use Git like a Senior](https://levelup.gitconnected.com/use-git-like-a-senior-engineer-ef6d741c898e)
+# Add custom markdown sources (optional)
+python3 interactive_tricks.py --source git.md --source os.md --source anaconda.md --source server.md
 
-![Screenshot 2024-07-08 at 8 59 44 AM](https://github.com/tin-xai/Automate_Research/assets/17596799/3326565a-88a6-4ff6-86ac-0e840913a1a2)
+# Export static site for GitHub Pages
+python3 interactive_tricks.py --export-static /path/to/tin-xai.github.io/tricks
+```
 
-# Reset touch bar display
-sudo pkill TouchBarServer
+GitHub Pages deploy (`https://tin-xai.github.io/tricks`):
+1. Run `--export-static` into your `tin-xai.github.io/tricks` folder.
+2. Commit and push in the `tin-xai.github.io` repo.
+3. The site is static and does not need Python server on GitHub.
+
+Website tips:
+- Use file chips to filter by use case (`git.md`, `os.md`, `anaconda.md`, `dotfiles/...`).
+- Use `/` to focus search, `j/k` to move between tricks.
+- Click `Only This File` inside a trick to narrow down quickly.
 
 # Author
 Thanh Tin Nguyen
