@@ -39,9 +39,11 @@ Auto deploy from this repo:
 3. After secret is set, pushing to `main` in this repo auto-updates `https://tin-xai.github.io/tricks`.
 
 Website tips:
-- Use file chips to filter by use case (`git.md`, `os.md`, `anaconda.md`, `dotfiles/...`).
+- Use the grouped file panel to filter by use case (`git.md`, `os.md`, `anaconda.md`, `dotfiles/...`).
 - Use `/` to focus search, `j/k` to move between tricks.
 - Click `Only This File` inside a trick to narrow down quickly.
+- Markdown tricks can render local images (for example `Installing_WebArena/assets/...`).
+- `--export-static` also exports referenced files/images into `tricks/files/`.
 
 # Author
 Thanh Tin Nguyen

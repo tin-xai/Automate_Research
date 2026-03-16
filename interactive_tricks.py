@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import re
 import shutil
 import subprocess
@@ -14,7 +15,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 
 EXCLUDED_SOURCE_NAMES = {"license.md", "agents.md"}
@@ -24,12 +25,14 @@ EXTRA_SOURCE_FILES = {
     "dotfiles/tmux.conf",
     "dotfiles/skhdrc",
     "dotfiles/yabairc",
+    "Installing_WebArena/download_webarena_gitlab.sh",
 }
 UNSPLIT_SOURCE_FILES = {
     "dotfiles/tmux.conf",
     "dotfiles/skhdrc",
     "dotfiles/yabairc",
     "dotfiles/README.md",
+    "Installing_WebArena/download_webarena_gitlab.sh",
 }
 COMMON_COMMAND_PREFIXES = {
     ".",
@@ -216,7 +219,12 @@ def split_into_sections(markdown_path: Path, lines: list[str]) -> list[Section]:
 
 def should_treat_as_single_trick_source(path: Path) -> bool:
     rel = path.as_posix()
-    return rel.endswith(tuple(UNSPLIT_SOURCE_FILES))
+    if rel.endswith(tuple(UNSPLIT_SOURCE_FILES)):
+        return True
+    # Keep markdown notes simple: one file == one trick.
+    if path.suffix.lower() == ".md":
+        return True
+    return False
 
 
 def parse_whole_file_as_trick(path: Path, lines: list[str]) -> Trick | None:
@@ -318,7 +326,7 @@ def parse_section_to_trick(markdown_path: Path, section: Section) -> Trick | Non
         return None
 
     code = "\n\n".join(chunk for chunk in code_chunks if chunk).strip()
-    note = " ".join(note_chunks).strip()
+    note = "\n".join(note_chunks).strip()
     return Trick(
         id=0,
         source=markdown_path,
@@ -575,6 +583,60 @@ def build_tricks_payload(entries: list[Trick], base_dir: Path) -> list[dict[str,
     return [trick_to_payload(item, base_dir) for item in entries]
 
 
+def extract_markdown_image_targets(text: str) -> list[str]:
+    targets: list[str] = []
+    for match in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)", text):
+        raw = match.group(1).strip()
+        if not raw:
+            continue
+        first = raw.split()[0].strip().strip("<>").strip('"').strip("'")
+        if not first:
+            continue
+        lowered = first.lower()
+        if lowered.startswith(("http://", "https://", "data:", "mailto:")):
+            continue
+        if first.startswith("#"):
+            continue
+        targets.append(first)
+    return targets
+
+
+def resolve_local_path(base_dir: Path, rel_path: str) -> Path | None:
+    target = (base_dir / rel_path).resolve()
+    try:
+        target.relative_to(base_dir.resolve())
+    except ValueError:
+        return None
+    return target
+
+
+def collect_export_files(entries: list[Trick], base_dir: Path) -> set[Path]:
+    collected: set[Path] = set()
+    base_resolved = base_dir.resolve()
+
+    for entry in entries:
+        source = entry.source.resolve()
+        try:
+            source.relative_to(base_resolved)
+        except ValueError:
+            continue
+        if source.is_file():
+            collected.add(source)
+
+        if entry.source.suffix.lower() != ".md":
+            continue
+        for target in extract_markdown_image_targets(entry.code):
+            candidate = (entry.source.parent / target).resolve()
+            try:
+                candidate.relative_to(base_resolved)
+            except ValueError:
+                continue
+            if candidate.is_file():
+                collected.add(candidate)
+
+    return collected
+
+
 def export_static_site(entries: list[Trick], base_dir: Path, output_dir: Path) -> int:
     if not WEB_ASSETS_DIR.exists():
         print(f"Missing web assets directory: {WEB_ASSETS_DIR}")
@@ -608,6 +670,15 @@ def export_static_site(entries: list[Trick], base_dir: Path, output_dir: Path) -
         json.dumps(tricks_payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+    export_files = collect_export_files(entries, base_dir)
+    files_root = output_dir / "files"
+    for file_path in export_files:
+        relative_path = file_path.relative_to(base_dir.resolve())
+        destination = files_root / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(file_path, destination)
+
     (output_dir / ".nojekyll").write_text("", encoding="utf-8")
     print(f"Static site exported to: {output_dir}")
     print("Publish this folder to GitHub Pages (for example, <site-repo>/tricks).")
@@ -637,9 +708,11 @@ def serve_web(entries: list[Trick], base_dir: Path, host: str, port: int, open_b
                 self.send_error(HTTPStatus.NOT_FOUND, "File not found")
                 return
             raw = file_path.read_bytes()
+            guessed_type, _ = mimetypes.guess_type(str(file_path))
             self.send_response(HTTPStatus.OK)
             self.send_header(
-                "Content-Type", MIME_TYPES.get(file_path.suffix, "application/octet-stream")
+                "Content-Type",
+                MIME_TYPES.get(file_path.suffix, guessed_type or "application/octet-stream"),
             )
             self.send_header("Content-Length", str(len(raw)))
             self.send_header("Cache-Control", "no-store")
@@ -696,6 +769,15 @@ def serve_web(entries: list[Trick], base_dir: Path, host: str, port: int, open_b
                     "items": build_tricks_payload(entries, base_dir),
                 }
                 self._send_json(payload)
+                return
+
+            if path.startswith("/files/"):
+                rel = unquote(path[len("/files/") :]).lstrip("/")
+                target = resolve_local_path(base_dir, rel)
+                if target is None:
+                    self.send_error(HTTPStatus.BAD_REQUEST, "Invalid file path")
+                    return
+                self._send_file(target)
                 return
 
             asset_name = WEB_ROUTES.get(path)

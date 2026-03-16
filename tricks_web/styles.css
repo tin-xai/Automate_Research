@@ -133,53 +133,76 @@ body {
   visibility: hidden;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  max-height: 128px;
+.source-filters {
+  max-height: 180px;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
-.chip {
+.source-all-row {
+  margin-bottom: 0.15rem;
+}
+
+.source-all-btn,
+.source-item {
+  width: 100%;
   border: 1px solid #c7d2c3;
   background: #f5f8f3;
   color: #28342a;
-  border-radius: 999px;
-  padding: 0.22rem 0.52rem;
-  font-size: 0.78rem;
-  display: inline-flex;
+  border-radius: 9px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  display: flex;
   align-items: center;
-  gap: 0.33rem;
+  justify-content: space-between;
+  gap: 0.45rem;
   cursor: pointer;
+  text-align: left;
 }
 
-.chip:hover {
+.source-all-btn:hover,
+.source-item:hover {
   border-color: #a9bda9;
   background: #eef5ed;
 }
 
-.chip.active {
+.source-all-btn.active,
+.source-item.active {
   border-color: var(--brand);
   background: #eaf6ef;
   color: #1a5f41;
 }
 
-.chip-label {
+.source-group {
+  border: 1px solid #d5ddd4;
+  border-radius: 10px;
+  padding: 0.45rem;
+  background: #fafcfa;
+}
+
+.source-group h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #617063;
+}
+
+.source-group .source-item + .source-item {
+  margin-top: 0.28rem;
+}
+
+.source-label {
   font-weight: 600;
 }
 
-.chip-group {
-  color: #6b786d;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-}
-
-.chip-count {
+.source-count {
   background: rgba(31, 107, 74, 0.11);
   color: #1c5d40;
   border-radius: 999px;
-  padding: 0 0.36rem;
+  padding: 0 0.38rem;
   font-size: 0.73rem;
 }
 
@@ -331,6 +354,7 @@ body {
   margin: 0;
   color: #2f3c31;
   font-size: 0.92rem;
+  white-space: pre-line;
 }
 
 pre {
@@ -342,6 +366,55 @@ pre {
   overflow: auto;
   line-height: 1.43;
   font-size: 0.88rem;
+}
+
+.detail-body {
+  margin-top: 0.85rem;
+}
+
+.detail-body.markdown h1,
+.detail-body.markdown h2,
+.detail-body.markdown h3,
+.detail-body.markdown h4 {
+  margin: 0.9rem 0 0.45rem;
+  line-height: 1.3;
+}
+
+.detail-body.markdown p,
+.detail-body.markdown li {
+  line-height: 1.55;
+  color: #213124;
+}
+
+.detail-body.markdown ul {
+  margin: 0.45rem 0 0.7rem 1.1rem;
+}
+
+.detail-body.markdown hr {
+  border: 0;
+  border-top: 1px solid #d5ddd3;
+  margin: 0.9rem 0;
+}
+
+.detail-body.markdown pre {
+  white-space: pre-wrap;
+}
+
+.detail-body.markdown a {
+  color: #1d5f44;
+  text-decoration: underline;
+}
+
+.detail-body.markdown figure {
+  margin: 0.85rem 0;
+}
+
+.detail-body.markdown img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #c8d3c9;
+  border-radius: 10px;
+  background: #f4f8f4;
 }
 
 .no-result {
@@ -373,7 +446,7 @@ pre {
     min-height: 40vh;
   }
 
-  .chips {
+  .source-filters {
     max-height: 98px;
   }
 }

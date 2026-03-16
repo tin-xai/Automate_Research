@@ -1,7 +1,7 @@
 const searchInput = document.getElementById("searchInput");
 const countPill = document.getElementById("countPill");
 const resultList = document.getElementById("resultList");
-const sourceChips = document.getElementById("sourceChips");
+const sourceFilters = document.getElementById("sourceFilters");
 const clearFiltersBtn = document.getElementById("clearFiltersBtn");
 const summaryText = document.getElementById("summaryText");
 const emptyState = document.getElementById("emptyState");
@@ -9,7 +9,7 @@ const detailCard = document.getElementById("detailCard");
 const detailHeading = document.getElementById("detailHeading");
 const detailMeta = document.getElementById("detailMeta");
 const detailNote = document.getElementById("detailNote");
-const detailCode = document.getElementById("detailCode");
+const detailBody = document.getElementById("detailBody");
 const onlySourceBtn = document.getElementById("onlySourceBtn");
 const copyBtn = document.getElementById("copyBtn");
 
@@ -128,68 +128,60 @@ async function fetchJson(url) {
   return response.json();
 }
 
-async function loadData() {
-  try {
-    const [sourcesData, tricksData] = await Promise.all([
-      fetchJson("api/sources"),
-      fetchJson("api/tricks"),
-    ]);
-    dataMode = "api";
-    sources = sourcesData.items || [];
-    allTricks = tricksData.items || [];
-  } catch {
-    const [sourcesData, tricksData] = await Promise.all([
-      fetchJson("sources.json"),
-      fetchJson("tricks.json"),
-    ]);
-    dataMode = "static";
-    sources = sourcesData.items || [];
-    allTricks = tricksData.items || [];
+function sourceSort(a, b) {
+  if (a.group !== b.group) {
+    return a.group.localeCompare(b.group);
   }
-
-  if (!sources.length) {
-    sources = buildSourcesFromTricks(allTricks);
-  }
-  allTricks.sort((a, b) => a.id - b.id);
-  const available = new Set(sources.map((item) => item.key));
-  selectedSources = new Set([...initialSources].filter((item) => available.has(item)));
+  return (a.display || a.name || "").localeCompare(b.display || b.name || "");
 }
 
-function renderSourceChips() {
+function groupedSources(list) {
+  const groups = new Map();
+  for (const source of [...list].sort(sourceSort)) {
+    const group = source.group || "root";
+    if (!groups.has(group)) {
+      groups.set(group, []);
+    }
+    groups.get(group).push(source);
+  }
+  return [...groups.entries()];
+}
+
+function renderSourceFilters() {
   if (!sources.length) {
-    sourceChips.innerHTML = '<p class="no-result">No files found.</p>';
+    sourceFilters.innerHTML = '<p class="no-result">No files found.</p>';
     return;
   }
 
   const total = sources.reduce((sum, item) => sum + (item.count || 0), 0);
-  const allActive = selectedSources.size === 0;
+  const allChecked = selectedSources.size === 0;
+  const groups = groupedSources(sources);
 
-  let chipsHtml = `
-    <button type="button" class="chip ${allActive ? "active" : ""}" data-all="1">
-      <span class="chip-label">All Files</span>
-      <span class="chip-count">${total}</span>
-    </button>
+  let html = `
+    <div class="source-all-row">
+      <button type="button" class="source-all-btn ${allChecked ? "active" : ""}" data-all="1">
+        <span>All Files</span>
+        <span class="source-count">${total}</span>
+      </button>
+    </div>
   `;
 
-  chipsHtml += sources
-    .map((source) => {
+  for (const [group, items] of groups) {
+    html += `<section class="source-group"><h4>${escapeHtml(group)}</h4>`;
+    for (const source of items) {
       const active = selectedSources.has(source.key);
       const label = escapeHtml(source.display || source.name || source.rel_path);
-      const group =
-        source.group && source.group !== "root"
-          ? `<span class="chip-group">${escapeHtml(source.group)}</span>`
-          : "";
-      return `
-        <button type="button" class="chip ${active ? "active" : ""}" data-key="${escapeHtml(source.key)}">
-          <span class="chip-label">${label}</span>
-          ${group}
-          <span class="chip-count">${source.count}</span>
+      html += `
+        <button type="button" class="source-item ${active ? "active" : ""}" data-key="${escapeHtml(source.key)}">
+          <span class="source-label">${label}</span>
+          <span class="source-count">${source.count}</span>
         </button>
       `;
-    })
-    .join("");
+    }
+    html += "</section>";
+  }
 
-  sourceChips.innerHTML = chipsHtml;
+  sourceFilters.innerHTML = html;
   clearFiltersBtn.classList.toggle("hidden", selectedSources.size === 0);
 }
 
@@ -248,6 +240,198 @@ function renderList(items) {
   resultList.innerHTML = parts.join("");
 }
 
+function normalizePath(path) {
+  const segments = [];
+  for (const part of path.split("/")) {
+    if (!part || part === ".") {
+      continue;
+    }
+    if (part === "..") {
+      segments.pop();
+      continue;
+    }
+    segments.push(part);
+  }
+  return segments.join("/");
+}
+
+function toFileHref(relPath) {
+  const normalized = normalizePath(relPath);
+  if (!normalized) {
+    return "";
+  }
+  return `files/${normalized.split("/").map((segment) => encodeURIComponent(segment)).join("/")}`;
+}
+
+function resolveAssetUrl(sourceRel, rawTarget) {
+  const target = String(rawTarget || "").trim();
+  if (!target) {
+    return "";
+  }
+  const lower = target.toLowerCase();
+  if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("data:")) {
+    return target;
+  }
+  if (target.startsWith("/")) {
+    return target;
+  }
+
+  const sourceDir = sourceRel.includes("/") ? sourceRel.slice(0, sourceRel.lastIndexOf("/")) : "";
+  const merged = sourceDir ? `${sourceDir}/${target}` : target;
+  return toFileHref(merged);
+}
+
+function parseInlineMarkdown(text, sourceRel) {
+  let html = escapeHtml(text);
+  html = html.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    (_, alt, target) =>
+      `<img class="md-inline-image" alt="${escapeHtml(alt)}" src="${escapeHtml(resolveAssetUrl(sourceRel, target))}" loading="lazy">`,
+  );
+  html = html.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, label, target) =>
+      `<a href="${escapeHtml(resolveAssetUrl(sourceRel, target))}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`,
+  );
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+  return html;
+}
+
+function renderMarkdownToHtml(markdown, sourceRel) {
+  const lines = markdown.replaceAll("\r\n", "\n").split("\n");
+  const out = [];
+  let inFence = false;
+  let fenceBuffer = [];
+  let inIndentCode = false;
+  let indentBuffer = [];
+  let inList = false;
+  let paragraph = [];
+
+  function flushParagraph() {
+    if (!paragraph.length) {
+      return;
+    }
+    out.push(`<p>${parseInlineMarkdown(paragraph.join(" "), sourceRel)}</p>`);
+    paragraph = [];
+  }
+
+  function flushList() {
+    if (!inList) {
+      return;
+    }
+    out.push("</ul>");
+    inList = false;
+  }
+
+  function flushIndentCode() {
+    if (!inIndentCode) {
+      return;
+    }
+    out.push(`<pre>${escapeHtml(indentBuffer.join("\n"))}</pre>`);
+    indentBuffer = [];
+    inIndentCode = false;
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (inFence) {
+      if (trimmed.startsWith("```")) {
+        out.push(`<pre>${escapeHtml(fenceBuffer.join("\n"))}</pre>`);
+        fenceBuffer = [];
+        inFence = false;
+      } else {
+        fenceBuffer.push(line);
+      }
+      continue;
+    }
+
+    if (trimmed.startsWith("```")) {
+      flushParagraph();
+      flushList();
+      flushIndentCode();
+      inFence = true;
+      fenceBuffer = [];
+      continue;
+    }
+
+    const isIndentCode = line.startsWith("    ") || line.startsWith("\t");
+    if (isIndentCode) {
+      flushParagraph();
+      flushList();
+      inIndentCode = true;
+      indentBuffer.push(line.replace(/^\t/, "    ").replace(/^ {4}/, ""));
+      continue;
+    }
+    flushIndentCode();
+
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    if (/^---+$/.test(trimmed)) {
+      flushParagraph();
+      flushList();
+      out.push("<hr>");
+      continue;
+    }
+
+    const headingMatch = /^(#{1,6})\s+(.*)$/.exec(trimmed);
+    if (headingMatch) {
+      flushParagraph();
+      flushList();
+      const level = Math.min(6, headingMatch[1].length);
+      out.push(`<h${level}>${parseInlineMarkdown(headingMatch[2], sourceRel)}</h${level}>`);
+      continue;
+    }
+
+    const imageOnlyMatch = /^!\[([^\]]*)\]\(([^)]+)\)$/.exec(trimmed);
+    if (imageOnlyMatch) {
+      flushParagraph();
+      flushList();
+      out.push(
+        `<figure><img alt="${escapeHtml(imageOnlyMatch[1])}" src="${escapeHtml(resolveAssetUrl(sourceRel, imageOnlyMatch[2]))}" loading="lazy"></figure>`,
+      );
+      continue;
+    }
+
+    const listMatch = /^-\s+(.*)$/.exec(trimmed);
+    if (listMatch) {
+      flushParagraph();
+      if (!inList) {
+        out.push("<ul>");
+        inList = true;
+      }
+      out.push(`<li>${parseInlineMarkdown(listMatch[1], sourceRel)}</li>`);
+      continue;
+    }
+
+    paragraph.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+  flushIndentCode();
+
+  if (inFence) {
+    out.push(`<pre>${escapeHtml(fenceBuffer.join("\n"))}</pre>`);
+  }
+
+  return out.join("");
+}
+
+function renderBody(trick) {
+  if ((trick.source_name || "").toLowerCase().endsWith(".md")) {
+    detailBody.classList.add("markdown");
+    detailBody.innerHTML = renderMarkdownToHtml(trick.code || "", trick.source_rel || "");
+    return;
+  }
+  detailBody.classList.remove("markdown");
+  detailBody.innerHTML = `<pre>${escapeHtml(trick.code || "")}</pre>`;
+}
+
 function showDetail(trick) {
   if (!trick) {
     detailCard.classList.add("hidden");
@@ -255,7 +439,7 @@ function showDetail(trick) {
     detailHeading.textContent = "";
     detailMeta.textContent = "";
     detailNote.textContent = "";
-    detailCode.textContent = "";
+    detailBody.innerHTML = "";
     onlySourceBtn.dataset.source = "";
     return;
   }
@@ -265,7 +449,7 @@ function showDetail(trick) {
   detailHeading.textContent = trick.heading || "(untitled)";
   detailMeta.textContent = `${trick.source_rel}:${trick.line} • Trick #${trick.id}`;
   detailNote.textContent = trick.note || "";
-  detailCode.textContent = trick.code || "";
+  renderBody(trick);
   onlySourceBtn.dataset.source = trick.source_rel;
   onlySourceBtn.disabled = selectedSources.size === 1 && selectedSources.has(trick.source_rel);
 }
@@ -323,7 +507,34 @@ function runSearchDebounced() {
   }, 120);
 }
 
-sourceChips.addEventListener("click", (event) => {
+async function loadData() {
+  try {
+    const [sourcesData, tricksData] = await Promise.all([
+      fetchJson("api/sources"),
+      fetchJson("api/tricks"),
+    ]);
+    dataMode = "api";
+    sources = sourcesData.items || [];
+    allTricks = tricksData.items || [];
+  } catch {
+    const [sourcesData, tricksData] = await Promise.all([
+      fetchJson("sources.json"),
+      fetchJson("tricks.json"),
+    ]);
+    dataMode = "static";
+    sources = sourcesData.items || [];
+    allTricks = tricksData.items || [];
+  }
+
+  if (!sources.length) {
+    sources = buildSourcesFromTricks(allTricks);
+  }
+  allTricks.sort((a, b) => a.id - b.id);
+  const available = new Set(sources.map((item) => item.key));
+  selectedSources = new Set([...initialSources].filter((item) => available.has(item)));
+}
+
+sourceFilters.addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) {
     return;
@@ -338,13 +549,13 @@ sourceChips.addEventListener("click", (event) => {
       selectedSources.add(key);
     }
   }
-  renderSourceChips();
+  renderSourceFilters();
   applyFilters(searchInput.value.trim());
 });
 
 clearFiltersBtn.addEventListener("click", () => {
   selectedSources.clear();
-  renderSourceChips();
+  renderSourceFilters();
   applyFilters(searchInput.value.trim());
 });
 
@@ -362,7 +573,7 @@ onlySourceBtn.addEventListener("click", () => {
     return;
   }
   selectedSources = new Set([sourceKey]);
-  renderSourceChips();
+  renderSourceFilters();
   applyFilters(searchInput.value.trim());
 });
 
@@ -424,7 +635,7 @@ document.addEventListener("keydown", (event) => {
 async function init() {
   searchInput.value = initialQuery;
   await loadData();
-  renderSourceChips();
+  renderSourceFilters();
   setSummary();
   applyFilters(initialQuery);
 }
