@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Research Tricks</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Automate Research</p>
+        <h1>Tricks Browser</h1>
+        <p id="summaryText" class="summary">Loading tricks...</p>
+      </div>
+      <p class="hint">Shortcuts: `/` focus search, `j/k` move, `Enter` open</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel list-panel">
+        <div class="search-row top-search">
+          <input id="searchInput" type="search" placeholder="Search tricks (ex: submodule, chmod, kubectl)">
+          <span id="countPill" class="pill">0 results</span>
+        </div>
+        <div class="filters-wrap">
+          <div class="filter-head">
+            <strong>Files</strong>
+            <button id="clearFiltersBtn" type="button" class="clear-btn hidden">Clear</button>
+          </div>
+          <div id="sourceChips" class="chips"></div>
+        </div>
+        <div id="resultList" class="result-list"></div>
+      </section>
+
+      <section class="panel detail-panel">
+        <div id="emptyState" class="empty-state">
+          Select a trick from the left to see full details.
+        </div>
+        <article id="detailCard" class="detail-card hidden">
+          <div class="detail-head">
+            <h2 id="detailHeading"></h2>
+            <div class="detail-actions">
+              <button id="onlySourceBtn" type="button" class="secondary-btn">Only This File</button>
+              <button id="copyBtn" type="button">Copy Command</button>
+            </div>
+          </div>
+          <p id="detailMeta" class="meta"></p>
+          <p id="detailNote" class="note"></p>
+          <pre id="detailCode"></pre>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
