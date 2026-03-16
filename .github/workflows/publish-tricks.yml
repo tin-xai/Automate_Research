@@ -1,0 +1,60 @@
+name: Publish Tricks To GitHub Pages Repo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TARGET_REPO: tin-xai/tin-xai.github.io
+  TARGET_BRANCH: main
+  TARGET_SUBDIR: tricks
+
+jobs:
+  publish-tricks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Export static tricks site
+        run: |
+          python3 interactive_tricks.py --export-static "${RUNNER_TEMP}/tricks-site"
+
+      - name: Clone target pages repo
+        env:
+          PAGES_REPO_TOKEN: ${{ secrets.PAGES_REPO_TOKEN }}
+        run: |
+          if [ -z "${PAGES_REPO_TOKEN}" ]; then
+            echo "Missing secret: PAGES_REPO_TOKEN"
+            exit 1
+          fi
+          git clone "https://x-access-token:${PAGES_REPO_TOKEN}@github.com/${TARGET_REPO}.git" "${RUNNER_TEMP}/pages-repo"
+
+      - name: Sync exported files into target subdirectory
+        run: |
+          mkdir -p "${RUNNER_TEMP}/pages-repo/${TARGET_SUBDIR}"
+          rsync -av --delete "${RUNNER_TEMP}/tricks-site/" "${RUNNER_TEMP}/pages-repo/${TARGET_SUBDIR}/"
+
+      - name: Commit and push if changed
+        run: |
+          cd "${RUNNER_TEMP}/pages-repo"
+          git checkout "${TARGET_BRANCH}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${TARGET_SUBDIR}"
+          if git diff --cached --quiet; then
+            echo "No tricks changes to publish."
+            exit 0
+          fi
+          git commit -m "Publish tricks from Automate_Research@${GITHUB_SHA::7}"
+          git push origin "${TARGET_BRANCH}"

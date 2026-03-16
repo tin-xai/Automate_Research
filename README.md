@@ -32,6 +32,12 @@ GitHub Pages deploy (`https://tin-xai.github.io/tricks`):
 2. Commit and push in the `tin-xai.github.io` repo.
 3. The site is static and does not need Python server on GitHub.
 
+Auto deploy from this repo:
+1. Workflow file: `.github/workflows/publish-tricks.yml` (runs on push to `main` and manual dispatch).
+2. Add repository secret in `Automate_Research`:
+`PAGES_REPO_TOKEN` = GitHub token with `Contents: Read and write` access to `tin-xai/tin-xai.github.io`.
+3. After secret is set, pushing to `main` in this repo auto-updates `https://tin-xai.github.io/tricks`.
+
 Website tips:
 - Use file chips to filter by use case (`git.md`, `os.md`, `anaconda.md`, `dotfiles/...`).
 - Use `/` to focus search, `j/k` to move between tricks.
