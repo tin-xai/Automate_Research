@@ -1,0 +1,17 @@
+onboarding = false
+[keys]
+# Ctrl-b, then v: split side by side (already the default)
+split_vertical = "prefix+v"
+
+# Ctrl-b, then s: split top/bottom, matching Vim
+split_horizontal = "prefix+s"
+
+# Move Settings off [Ctrl-b, s] so the split shortcut can use it
+settings = "prefix+shift+s"
+
+# Ctrl-b, then comma/period: previous/next agent
+previous_agent = "prefix+comma"
+next_agent = "prefix+period"
+
+# Focus agent 1-9 (Ctrl-b, then 1-9)
+focus_agent = "prefix+alt+1..9"
