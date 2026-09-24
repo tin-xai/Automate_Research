@@ -274,3 +274,10 @@ let g:prettier#config#print_width = 100 " default is 'auto'
 " Colorscheme (For gruvbox $TERM env var needs to be xterm-256color)
 autocmd vimenter * ++nested colorscheme gruvbox
 "colorscheme vim-monokai-tasty
+
+filetype plugin indent on
+
+let g:vimtex_compiler_method = 'latexmk'
+let g:vimtex_view_method = 'skim'
+let g:vimtex_view_skim_sync = 1
+let g:vimtex_view_skim_activate = 1
